@@ -2,10 +2,12 @@ package com.example.dummyjson.controller;
 
 import com.example.dummyjson.dto.Product;
 import com.example.dummyjson.service.ProductService;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
-import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @RestController
@@ -22,6 +24,10 @@ public class ProductController {
 
     @GetMapping("/{id}")
     public Product getProductById(@PathVariable @NotNull Long id) {
-        return productService.getProductById(id);
+        Product product = productService.getProductById(id);
+        if (product == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found");
+        }
+        return product;
     }
 }
