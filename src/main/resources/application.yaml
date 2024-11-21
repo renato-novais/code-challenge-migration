@@ -1,2 +1,4 @@
 server:
   port: 8080
+api:
+  base-url: https://dummyjson.com
