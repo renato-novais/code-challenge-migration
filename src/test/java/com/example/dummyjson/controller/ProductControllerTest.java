@@ -1,56 +1,58 @@
 package com.example.dummyjson.controller;
 
 import com.example.dummyjson.dto.Product;
-import com.example.dummyjson.service.ProductService;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
-import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
 
-@RunWith(MockitoJUnitRunner.class)
-public class ProductControllerTest {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class ProductControllerTest {
 
-    @InjectMocks
-    private ProductController productController;
+    @LocalServerPort
+    private int port;
 
-    @Mock
-    private ProductService productService;
+    private WebTestClient webTestClient;
 
-    @Test
-    public void testGetAllProducts() {
-        Product product1 = new Product();
-        product1.setId(1L);
-        product1.setTitle("Product 1");
-
-        Product product2 = new Product();
-        product2.setId(2L);
-        product2.setTitle("Product 2");
-
-        List<Product> products = Arrays.asList(product1, product2);
-        when(productService.getAllProducts()).thenReturn(products);
-
-        List<Product> result = productController.getAllProducts();
-        assertEquals(2, result.size());
-        assertEquals("Product 1", result.get(0).getTitle());
+    @BeforeEach
+    void setUp() {
+        webTestClient = WebTestClient.bindToServer()
+                .baseUrl("http://localhost:" + port)
+                .responseTimeout(java.time.Duration.ofMinutes(5))
+                .build();
     }
 
     @Test
-    public void testGetProductById() {
-        Product product = new Product();
-        product.setId(1L);
-        product.setTitle("Product 1");
+    void testGetAllProducts() {
+        List<Product> products = webTestClient.get()
+                .uri("/api/products")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(Product.class)
+                .returnResult()
+                .getResponseBody();
 
-        when(productService.getProductById(1L)).thenReturn(product);
-
-        Product result = productController.getProductById(1L);
-        assertEquals("Product 1", result.getTitle());
+        assertNotNull(products, "A lista de produtos não deve ser nula");
+        assertFalse(products.isEmpty(), "A lista de produtos não deve estar vazia");
     }
+
+    @Test
+    void testGetProductById_ExistingId() {
+        Product product = webTestClient.get()
+                .uri("/api/products/{id}", 1)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Product.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertNotNull(product, "O produto não deve ser nulo");
+        assertEquals(1L, product.getId(), "O ID do produto deve corresponder ao ID solicitado");
+    }
+
 }

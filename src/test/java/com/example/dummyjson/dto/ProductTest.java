@@ -1,31 +1,80 @@
 package com.example.dummyjson.dto;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 
-import javax.validation.constraints.NotNull;
+import java.util.Set;
 
-@RunWith(MockitoJUnitRunner.class)
-public class ProductTest {
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@SpringBootTest
+class ProductTest {
+    private Validator validator;
+
+    @BeforeEach
+    void setUp() {
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
+    }
 
     @Test
-    public void testGetAndSetter(){
-        Long expectId = 1L;
-        String expectedTitle = "A dummy title";
-        String expectedDescription = "A dummy description";
-        Double expectedPrice = new Double("2.1");
+    void testValidProduct() {
+        Product product = new Product();
+        product.setId(1L);
+        product.setTitle("Produto Teste");
+        product.setDescription("Descrição do produto");
+        product.setPrice(99.99);
 
-        Product product1 = new Product();
-        product1.setId(1L);
-        product1.setTitle("A dummy title");
-        product1.setDescription("A dummy description");
-        product1.setPrice(new Double("2.1"));
+        Set<ConstraintViolation<Product>> violations = validator.validate(product);
 
-        Assert.assertEquals(expectId, product1.getId());
-        Assert.assertEquals(expectedTitle, product1.getTitle());
-        Assert.assertEquals(expectedDescription, product1.getDescription());
-        Assert.assertEquals(expectedPrice, product1.getPrice());
+        assertTrue(violations.isEmpty(), "O produto válido não deve gerar violações");
+    }
+
+    @Test
+    void testInvalidProduct_NullFields() {
+        Product product = new Product();
+
+        Set<ConstraintViolation<Product>> violations = validator.validate(product);
+
+        assertFalse(violations.isEmpty(), "O produto inválido deve gerar violações");
+        assertTrue(
+                violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("id")),
+                "O campo 'id' deve gerar uma violação"
+        );
+        assertTrue(
+                violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("title")),
+                "O campo 'title' deve gerar uma violação"
+        );
+        assertTrue(
+                violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("description")),
+                "O campo 'description' deve gerar uma violação"
+        );
+        assertTrue(
+                violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("price")),
+                "O campo 'price' deve gerar uma violação"
+        );
+    }
+
+    @Test
+    void testInvalidProduct_InvalidId() {
+        Product product = new Product();
+        product.setId(1000L); // Fora do limite definido em @Max(999)
+        product.setTitle("Produto Teste");
+        product.setDescription("Descrição do produto");
+        product.setPrice(99.99);
+
+        Set<ConstraintViolation<Product>> violations = validator.validate(product);
+
+        assertFalse(violations.isEmpty(), "O produto inválido deve gerar violações");
+        assertTrue(
+                violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("id")),
+                "O campo 'id' deve gerar uma violação de limite"
+        );
     }
 }
