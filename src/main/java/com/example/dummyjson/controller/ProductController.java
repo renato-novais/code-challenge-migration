@@ -5,6 +5,7 @@ import com.example.dummyjson.service.ProductService;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -23,11 +24,12 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public Product getProductById(@PathVariable @NotNull Long id) {
+    public ResponseEntity<Product> getProductById(@PathVariable @NotNull Long id) {
         Product product = productService.getProductById(id);
         if (product == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found");
+            return ResponseEntity.notFound().build();
         }
-        return product;
+        return ResponseEntity.ok(product);
     }
+
 }
